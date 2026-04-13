@@ -1,4 +1,3 @@
-
 \documentclass[conference]{IEEEtran}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
@@ -43,7 +42,7 @@
     showtabs=false,                  
     tabsize=2
 }
-\title{Implementation of Indoor Positioning System using Ultra Wide Bandwidth(UWB)}
+\title{Implementation of Indoor Positioning System}
 
 \author{
 \IEEEauthorblockN{Indhiresh S, Kavin B}
@@ -57,11 +56,11 @@ Email: ee25btech11027@iith.ac.in, ee25btech11033@iith.ac.in}
 
 \maketitle
 \begin{abstract}
-This documentation presents the development of a real-time, high-precision indoor positioning system utilizing Ultra-Wideband (UWB) technology. Because traditional global positioning systems fail to provide reliable coverage in indoor environments, this project leverages the ultra-wide frequency spectrum and short pulse duration of UWB RF signals to achieve centimeter-level spatial localization. By utilizing Time-of-Flight (ToF) ranging techniques, precise distances are calculated between a mobile UWB tag and a network of stationary anchors. These ranges are then processed through a 2D trilateration algorithm to dynamically compute the mobile tag's exact X and Y spatial coordinates. The localization data is edge-computed by an integrated microcontroller, which concurrently operates as a web server to host a live HTML5 canvas interface, allowing for the real-time visualization of the tracking data. Ultimately, this system demonstrates a robust, low-latency, and highly accurate solution for continuous indoor tracking, inherently overcoming common indoor RF challenges such as multipath interference.
+This documentation presents the development of a real-time indoor positioning system (IPS) utilizing Wi-Fi Fine Time Measurement (FTM) technology on ESP32 microcontrollers. Because traditional global positioning systems fail to provide reliable coverage in indoor environments, this project leverages Time-of-Flight (ToF) ranging techniques to calculate distances between a mobile ESP32 tag and a network of stationary Wi-Fi anchors. Due to severe indoor multipath interference caused by 2.4 GHz signal reflections, traditional geometric trilateration and linear regression models were ultimately superseded by a purely data-driven K-Nearest Neighbors (KNN) RF Fingerprinting machine learning approach. By mapping ambient multipath signatures, the KNN algorithm dynamically computes the mobile tag's X and Y spatial coordinates, achieving stable, sub-meter localization. The positioning logic is edge-computed by the integrated microcontroller, which concurrently operates as a local web server to host a live HTML5 canvas interface for real-time visualization. Ultimately, this system demonstrates a robust and low-latency solution for continuous indoor tracking, successfully overcoming the geometric limitations of narrow-band Wi-Fi signals.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Ultra-Wideband (UWB), Indoor Positioning System (IPS), Time-of-Flight (ToF), Trilateration Algorithm, Real-Time Spatial Tracking, Edge Computing
+Ultra-Wideband (UWB), Indoor Positioning System (IPS), Time-of-Flight (ToF), Trilateration Algorithm, Machine Learning, K-Nearest Neighbors (KNN), Real-Time Spatial Tracking, Edge Computing
 \end{IEEEkeywords}
 
 \section{Introduction}
@@ -73,7 +72,7 @@ The proliferation of location-based services has driven a massive demand for acc
 To bridge the gap in indoor localization, Ultra-Wideband (UWB) technology has emerged as a superior solution. Unlike traditional narrowband systems that rely on signal strength (RSSI) to estimate distance, UWB operates across a massive frequency spectrum (typically 500 MHz or more) using extremely short, nanosecond-scale radio pulses. This unique physical characteristic allows UWB receivers to accurately distinguish between the direct line-of-sight signal and delayed multipath reflections. By measuring the precise Time-of-Flight (ToF) of these pulses traveling at the speed of light, UWB systems can calculate physical distances with centimeter-level accuracy, making it an ideal foundation for high-precision tracking.
 
 \subsection{Project Scope and Objectives}
-This project details the design and implementation of a custom UWB-based Indoor Positioning System (IPS). The primary objective is to develop a reliable, edge-computed tracking solution capable of real-time spatial localization. The system architecture consists of a mobile UWB tag and a network of fixed UWB anchors. By continually polling the ToF between the tag and the anchors, the system generates high-fidelity distance measurements. These ranges are actively processed through a 2D trilateration algorithm on a central microcontroller to compute the exact Cartesian coordinates ($X$ and $Y$) of the target. Finally, to ensure accessibility and immediate visual feedback, the hardware concurrently operates as a local web server, broadcasting the computed coordinates to a live HTML5 graphical interface.
+This project details the design and implementation of a custom UWB-based Indoor Positioning System (IPS). The primary objective is to develop a reliable, edge-computed tracking solution capable of real-time spatial localization. The system architecture consists of a mobile UWB tag and a network of fixed UWB anchors. By continually polling the ToF between the tag and the anchors, the system generates high-fidelity distance measurements. These ranges are actively processed through positioning algorithms on a central microcontroller to compute the exact Cartesian coordinates ($X$ and $Y$) of the target. Finally, to ensure accessibility and immediate visual feedback, the hardware concurrently operates as a local web server, broadcasting the computed coordinates to a live HTML5 graphical interface.
 
 \section{Methodology}
 
@@ -94,7 +93,7 @@ where $c$ is the speed of light in a vacuum ($\approx 3 \times 10^8$ m/s), and $
 \end{figure}
 
 \subsection{2D Trilateration Algorithm}
-Once the radial distances from the three anchors ($r_1, r_2, r_3$) are acquired, a 2D trilateration algorithm is employed to find the tag's exact spatial intersection. To optimize the computational load on the microcontroller, the coordinate system is aligned such that Anchor 1 is at the origin $(0,0)$, Anchor 2 lies on the x-axis at $(d,0)$, and Anchor 3 is located at an arbitrary point $(i,j)$.
+Once the radial distances from the three anchors ($r_1, r_2, r_3$) are acquired, an initial 2D trilateration algorithm was employed to find the tag's exact spatial intersection. To optimize the computational load on the microcontroller, the coordinate system is aligned such that Anchor 1 is at the origin $(0,0)$, Anchor 2 lies on the x-axis at $(d,0)$, and Anchor 3 is located at an arbitrary point $(i,j)$.
 
 The system of geometric equations representing the three intersecting ranging circles is:
 \begin{align}
@@ -120,7 +119,7 @@ This streamlined algebraic approach provides a highly deterministic and computat
 \end{figure}
 
 \section{IMPLEMENTATION USING SDR}
-To gain full control over the physical layer, dedicated UWB modules were replaced with ADALM-Pluto Software Defined Radios (SDRs). The SDRs were unlocked via SSH to support frequencies up to 6 GHz , and all signal processing logic was transitioned to Python using \texttt{numpy} 
+To gain full control over the physical layer, dedicated UWB modules were replaced with ADALM-Pluto Software Defined Radios (SDRs). The SDRs were unlocked via SSH to support frequencies up to 6 GHz , and all signal processing logic was transitioned to Python using \texttt{numpy}.
 
 For Time-of-Flight ranging, the system utilizes a custom Zadoff-Chu pulse. The Tag transmits this sequence while initiating a timer, and the Anchor immediately reflects it back. Upon reception, the Tag performs a digital cross-correlation against the known sequence to pinpoint the exact peak arrival time, thereby determining the signal's round-trip time.
 
@@ -169,6 +168,89 @@ $$x = \frac{r_1^2 - r_2^2 + d^2}{2d}$$
 $$y = \frac{r_1^2 - r_3^2 + i^2 + j^2 - 2ix}{2j}$$
 
 where $d$ is the x-coordinate of Anchor 2, and $(i, j)$ are the coordinates of Anchor 3.
+\newpage
+\subsection{ANCHOR NODE CODE}
+Each stationary anchor runs the following firmware. On startup, the anchor initialises ESP-NOW and registers a receive callback. Whenever a ranging packet arrives from the tag, the anchor automatically registers the sender as a peer (if not already known) and immediately reflects the exact same data structure back, enabling the tag to compute the round-trip time.
+
+\begin{lstlisting}[language=C++]
+#include <esp_now.h>
+#include <WiFi.h>
+
+// Structure to hold incoming data.
+// CRITICAL: This exact structure must also be used on your main sending device!
+typedef struct struct_message {
+  int id;
+  float x;
+  float y;
+} struct_message;
+
+struct_message myData;
+
+// Callback function executed when data is received
+void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+  // 1. Copy the incoming bytes into our data structure
+  memcpy(&myData, incomingData, sizeof(myData));
+
+  Serial.print("Received packet from MAC: ");
+  for (int i = 0; i < 6; i++) {
+    Serial.print(mac[i], HEX);
+    if (i < 5) Serial.print(":");
+  }
+  Serial.println();
+
+  // 2. Check if the sender is already registered as a peer.
+  //    If not, add them on the fly.
+  if (!esp_now_is_peer_exist(mac)) {
+    esp_now_peer_info_t peerInfo;
+    memset(&peerInfo, 0, sizeof(peerInfo));
+    memcpy(peerInfo.peer_addr, mac, 6);
+    peerInfo.channel = 0;  // Use current Wi-Fi channel
+    peerInfo.encrypt = false;
+
+    if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+      Serial.println("Failed to add peer for reflection.");
+      return;
+    }
+  }
+
+  // 3. Reflect the exact same data back to the sender
+  esp_err_t result = esp_now_send(mac, (uint8_t *) &myData, sizeof(myData));
+
+  if (result == ESP_OK) {
+    Serial.println("Packet successfully reflected.");
+  } else {
+    Serial.println("Error bouncing packet back.");
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  // Set ESP32 to Wi-Fi Station mode
+  WiFi.mode(WIFI_STA);
+
+  // Print the MAC Address of this Anchor so you know what to target
+  Serial.print("ANCHOR MAC ADDRESS: ");
+  Serial.println(WiFi.macAddress());
+
+  // Initialize ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+
+  // Register the receive callback function
+  esp_now_register_recv_cb(OnDataRecv);
+}
+
+void loop() {
+  // The loop does nothing. The anchor sits quietly and waits
+  // for the hardware interrupt (the callback) to trigger when
+  // a packet arrives.
+  delay(1000);
+}
+\end{lstlisting}
+
 \newpage
 \subsection{CODE IMPLEMENTED}
 \begin{lstlisting}[language=C++]
@@ -868,6 +950,7 @@ void calculateXY() {
                 r1, r2, r3, x, y);
 }
 \end{lstlisting}
+
 \subsection{Results: ML System Performance}
 
 \noindent \textbf{Overcoming Analytical Failures}
@@ -894,5 +977,100 @@ void calculateXY() {
     \item Linear Regression applies a \textit{static, global} calibration weight to the distances. 
     \item However, multipath reflections from physical walls create \textit{highly non-linear} interference at the edges of the room, which a basic linear model cannot account for.
 \end{itemize}
+
+\newpage
+% ---------------------------------------------------------
+\section{IMPLEMENTATION USING ESP32: RF FINGERPRINTING (KNN)}
+
+\subsection{Overcoming Non-Linear Multipath}
+Because linear regression (OLS) applies a static, global calibration weight, it fundamentally fails at the physical boundaries of the room where multipath reflections are highly non-linear. To completely bypass geometric assumptions, the system architecture was transitioned to a purely data-driven pattern matching algorithm: K-Nearest Neighbors (KNN) RF Fingerprinting. Instead of fighting multipath delays, this approach utilizes the unique, messy signal reflections at any given coordinate as a distinctive ``fingerprint'' for that exact physical location.
+
+\subsection{Methodology and The ``Thick Map''}
+The KNN implementation operates in two distinct phases to map and track the spatial environment:
+\begin{itemize}
+    \item \textbf{Offline Phase (Calibration):} A ``Thick Map'' database was constructed by recording 50 raw FTM fingerprint sets across the 10m $\times$ 8m grid. Multiple datasets were combined for the exact same physical coordinates to capture natural environmental variance and drift, doubling the system's robustness.
+    \item \textbf{Online Phase (Live Tracking):} The ESP32 continuously compares the live FTM distance readings $(r_1, r_2, r_3)$ against the 50-point database in real-time by calculating the 3D Euclidean feature distance:
+\end{itemize}
+\begin{equation}
+    D = \sqrt{(r_1 - m_{r1})^2 + (r_2 - m_{r2})^2 + (r_3 - m_{r3})^2}
+\end{equation}
+where $m_{r1}, m_{r2}, m_{r3}$ represent the offline-mapped fingerprint distances at a specific index.
+
+\subsection{Inverse Distance Weighting (K=3)}
+While a strict Nearest Neighbor ($K=1$) approach causes the tracking dot to rigidly snap between known grid points, a $K=3$ configuration was deployed to enable smooth, continuous tracking. The algorithm identifies the 3 closest fingerprint matches in the database and averages their physical coordinates using Inverse Distance Weighting:
+\begin{equation}
+    (X, Y)_{\text{final}} = \frac{\sum_{k=1}^{3} \left( (X_k, Y_k) \cdot \frac{1}{D_k + \epsilon} \right)}{\sum_{k=1}^{3} \left(\frac{1}{D_k + \epsilon}\right)}
+\end{equation}
+where $\epsilon$ is a small constant (e.g., 0.01) to prevent division by zero. This mathematical blending allows the ESP32 to accurately interpolate the tag's position even when it is located in the ``dead zones'' between the mapped calibration points.
+
+\subsection{Code Implemented}
+The following C++ snippet demonstrates the edge-computed KNN inference algorithm executed locally on the ESP32. This logic entirely replaces the previous geometric trilateration and OLS routines:
+
+\begin{lstlisting}[language=C++]
+void calculateXY() {
+  float r1 = smoothed_distances[0];
+  float r2 = smoothed_distances[1];
+  float r3 = smoothed_distances[2];
+
+  // Arrays to hold the top 3 closest matches
+  float best_dist[3] = {9999.0, 9999.0, 9999.0};
+  int best_idx[3] = {-1, -1, -1};
+
+  // 1. Search the 50-point database for the closest fingerprints
+  for (int i = 0; i < NUM_POINTS; i++) {
+    float d_r1 = r1 - mapR1[i];
+    float d_r2 = r2 - mapR2[i];
+    float d_r3 = r3 - mapR3[i];
+
+    // Calculate Euclidean "Feature Distance"
+    float sim_dist = sqrt((d_r1*d_r1) + (d_r2*d_r2) + (d_r3*d_r3));
+
+    // Sort into the top 3 matches
+    if (sim_dist < best_dist[0]) {
+      best_dist[2] = best_dist[1]; best_idx[2] = best_idx[1];
+      best_dist[1] = best_dist[0]; best_idx[1] = best_idx[0];
+      best_dist[0] = sim_dist;     best_idx[0] = i;
+    } else if (sim_dist < best_dist[1]) {
+      best_dist[2] = best_dist[1]; best_idx[2] = best_idx[1];
+      best_dist[1] = sim_dist;     best_idx[1] = i;
+    } else if (sim_dist < best_dist[2]) {
+      best_dist[2] = sim_dist;     best_idx[2] = i;
+    }
+  }
+
+  // 2. Average the physical coordinates (Inverse Distance Weighting)
+  float final_x = 0; 
+  float final_y = 0; 
+  float total_weight = 0;
+  
+  for (int k = 0; k < 3; k++) {
+    if (best_idx[k] != -1) {
+      float weight = 1.0 / (best_dist[k] + 0.01); 
+      final_x += mapX[best_idx[k]] * weight;
+      final_y += mapY[best_idx[k]] * weight;
+      total_weight += weight;
+    }
+  }
+
+  // 3. Set the final interpolated coordinate
+  if (total_weight > 0) {
+    posX = final_x / total_weight;
+    posY = final_y / total_weight;
+  }
+}
+\end{lstlisting}
+
+\subsection{Results and Environmental Drift Management}
+Theoretically, the transition to a K-Nearest Neighbors (KNN) RF Fingerprinting approach was intended to neutralize the non-linear boundary errors observed in the OLS regression model by bypassing geometric assumptions entirely. However, empirical testing revealed that the KNN implementation ultimately yielded lower overall positioning accuracy compared to the previous OLS method. The primary limitation was the spatial sparsity of the calibration grid; the physical gaps between the mapped reference points caused the $K=3$ Inverse Distance Weighting to inaccurately interpolate the tag's position in the unmapped spaces. While KNN successfully prevented the tracking coordinates from projecting outside the physical walls of the room, its average error within the center grid was higher than that of the generalized linear model.
+
+Furthermore, the KNN model proved to be highly vulnerable to ``Environmental Drift''---fluctuations in multipath signatures caused by moving furniture, open doors, or human presence over time. Because KNN relies on exact signal pattern matching, even minor dynamic changes in the room degraded the fingerprint matches, reducing accuracy further. To combat this constraint natively on the MCU, the system was upgraded with a \textbf{Manual Recalibration} feature via the asynchronous web interface. If the tag experiences localized drift, the user can manually input their known $(X,Y)$ coordinate on the SoftAP website. The ESP32 immediately captures the new ambient FTM signature for that location, overwrites the specific index in the runtime memory, and utilizes the \texttt{Preferences} library to commit the updated map array directly to its non-volatile flash memory. While this allows the system to be maintained over time, the inherent environmental sensitivity of sparse RF fingerprinting made it practically less reliable than OLS regression for this specific hardware deployment.
+
+\newpage
+
+\section{Conclusion}
+This project systematically evaluated multiple approaches for developing a real-time Indoor Positioning System, transitioning from Software Defined Radios (ADALM-Pluto) to ESP32-based Wi-Fi Fine Time Measurement (FTM). Through rigorous empirical testing of geometric trilateration, Ordinary Least Squares (OLS) regression, and K-Nearest Neighbors (KNN) RF Fingerprinting, a definitive hardware limitation was established: achieving centimeter-level accuracy is fundamentally impossible using standard Wi-Fi FTM. Because the ESP32 operates on a narrow 20 MHz channel bandwidth, the physical radio pulses are too wide to distinguish the true Line-of-Sight (LOS) signal from overlapping multipath reflections in a cluttered indoor environment. Consequently, no numerical method, linear calibration, or machine learning algorithm can completely compensate for this physical-layer distortion. While ML techniques like OLS and KNN successfully stabilized the tracking output, prevented geometric boundary failures, and constrained errors to the sub-meter or meter level, the narrow transmission bandwidth remains the ultimate bottleneck for high-precision spatial localization.
+
+\section{Future Scope}
+To achieve the targeted centimeter-level accuracy, future iterations of this system must abandon narrowband Wi-Fi FTM in favor of true Ultra-Wideband (UWB) hardware modules, such as the Decawave DW1000 or DW3000 series transceivers. By utilizing a frequency bandwidth of 500 MHz or greater, dedicated UWB systems generate incredibly sharp, nanosecond-scale pulses. This extreme temporal resolution allows the receiving anchors to physically filter out delayed multipath wall reflections and lock exclusively onto the direct LOS signal, natively solving the indoor tracking problem without relying on heavy software calibrations or dense fingerprinting maps. Furthermore, integrating Sensor Fusion by adding an onboard Inertial Measurement Unit (IMU, such as the MPU6050) to the mobile tag would allow the system to cross-reference spatial coordinates with physical acceleration. This would effectively eliminate static environmental drift and dramatically smooth the real-time tracking trajectory between ranging polls.
 
 \end{document}
